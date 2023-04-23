@@ -1,7 +1,7 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 
-from vectordb import get_qdrant_impl
+from vector_db import get_qdrant_impl
 from typing import List
 from models import Information
 

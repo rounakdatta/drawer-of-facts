@@ -13,29 +13,39 @@ from callback import QuestionGenCallbackHandler, StreamingLLMCallbackHandler
 from query_data import get_chain
 from schemas import ChatResponse
 
-from vectordb import get_qdrant_impl
+from vector_db import get_qdrant_impl, get_qdrant_client
 from models import Information, MetaInformation
 from ingest import ingest_docs
 from datetime import datetime
 from langchain.embeddings import OpenAIEmbeddings
+from qdrant_client.http import models as rest
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 vectorstore: Optional[VectorStore] = None
 
+VECTOR_SIZE = 1536
+distance_func = "COSINE"
 
 @app.on_event("startup")
 async def startup_event():
     logging.info("loading vectorstore")
     global vectorstore
     vectorstore = get_qdrant_impl()
-    vectorstore.from_texts(
-        texts=["This is my personal fact store"],
-        embedding=OpenAIEmbeddings(),
-        location=None,
-        url="localhost",
-        collection_name="my_test_documents"
-    )
+    
+    qdrant_client = get_qdrant_client()
+    try:
+        # we check if the collection already exists
+        existing_collection = qdrant_client.get_collection("my_test_documents")
+    except:
+        # if the collection doesn't exist, then we try create it
+        qdrant_client.create_collection(
+            collection_name="my_test_documents",
+            vectors_config=rest.VectorParams(
+                size=VECTOR_SIZE,
+                distance=rest.Distance[distance_func],
+            )
+        )
 
 
 @app.get("/")

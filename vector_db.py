@@ -15,5 +15,8 @@ qdrant = Qdrant(
     embedding_function=embedding_generator.embed_query
 )
 
+def get_qdrant_client():
+    return client
+
 def get_qdrant_impl():
     return qdrant
