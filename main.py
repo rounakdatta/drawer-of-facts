@@ -4,6 +4,7 @@ import pickle
 from pathlib import Path
 from typing import Optional
 
+import fastapi
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from langchain.vectorstores import VectorStore
@@ -11,6 +12,12 @@ from langchain.vectorstores import VectorStore
 from callback import QuestionGenCallbackHandler, StreamingLLMCallbackHandler
 from query_data import get_chain
 from schemas import ChatResponse
+
+from vectordb import get_qdrant_impl
+from models import Information, MetaInformation
+from ingest import ingest_docs
+from datetime import datetime
+from langchain.embeddings import OpenAIEmbeddings
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -20,16 +27,34 @@ vectorstore: Optional[VectorStore] = None
 @app.on_event("startup")
 async def startup_event():
     logging.info("loading vectorstore")
-    if not Path("vectorstore.pkl").exists():
-        raise ValueError("vectorstore.pkl does not exist, please run ingest.py first")
-    with open("vectorstore.pkl", "rb") as f:
-        global vectorstore
-        vectorstore = pickle.load(f)
+    global vectorstore
+    vectorstore = get_qdrant_impl()
+    vectorstore.from_texts(
+        texts=["This is my personal fact store"],
+        embedding=OpenAIEmbeddings(),
+        location=None,
+        url="localhost",
+        collection_name="my_test_documents"
+    )
 
 
 @app.get("/")
 async def get(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/ingest")
+async def ingest_data():
+    data = Information(
+        info="They serve chicken in the PG for every Sunday dinner",
+        meta=MetaInformation(
+            source="ntfy",
+            timestamp=datetime.now(),
+            tags=["hello", "world"]
+        )
+    )
+    ingest_docs(data)
+    return fastapi.Response(content="OK", status_code=200)
 
 
 @app.websocket("/chat")
@@ -54,12 +79,15 @@ async def websocket_endpoint(websocket: WebSocket):
             start_resp = ChatResponse(sender="bot", message="", type="start")
             await websocket.send_json(start_resp.dict())
 
+            print("now I will find out the answer")
             result = await qa_chain.acall(
                 {"question": question, "chat_history": chat_history}
             )
+            print("here is the answer")
+            print(result)
             chat_history.append((question, result["answer"]))
 
-            end_resp = ChatResponse(sender="bot", message="", type="end")
+            end_resp = ChatResponse(sender="bot", message=result["answer"], type="end")
             await websocket.send_json(end_resp.dict())
         except WebSocketDisconnect:
             logging.info("websocket disconnect")

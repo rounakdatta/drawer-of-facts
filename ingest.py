@@ -1,22 +1,9 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 
-from dataclasses import dataclass
-from datetime import datetime
-
 from vectordb import get_qdrant_impl
-
-@dataclass
-class MetaInformation:
-    source: str
-    timestamp: datetime
-    tags: List[str]
-
-@dataclass
-class Information:
-    meta: MetaInformation
-    info: str
-
+from typing import List
+from models import Information
 
 def prepare_documents(information: Information) -> List[Document]:
     metadata = {

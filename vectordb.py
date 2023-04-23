@@ -12,7 +12,7 @@ embedding_generator = OpenAIEmbeddings()
 qdrant = Qdrant(
     client=client,
     collection_name="my_test_documents",
-    embedding_function=embedding_generator.embed_documents
+    embedding_function=embedding_generator.embed_query
 )
 
 def get_qdrant_impl():
