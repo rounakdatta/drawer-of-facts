@@ -11,7 +11,7 @@ from langchain.vectorstores import VectorStore
 
 from callback import QuestionGenCallbackHandler, StreamingLLMCallbackHandler
 from query_data import get_chain
-from schemas import ChatResponse
+from schemas import ChatResponse, EmbeddingRequest
 
 from vector_db import get_qdrant_impl, get_qdrant_client
 from config import get_qdrant_config
@@ -55,17 +55,9 @@ async def get(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/ingest")
-async def ingest_data():
-    data = Information(
-        info="They serve chicken in the PG for every Sunday dinner",
-        meta=MetaInformation(
-            source="ntfy",
-            timestamp=datetime.now(),
-            tags=["hello", "world"]
-        )
-    )
-    ingest_docs(data)
+@app.post("/ingest")
+async def ingest_data(request: EmbeddingRequest):
+    ingest_docs(request.data)
     return fastapi.Response(content="OK", status_code=200)
 
 
