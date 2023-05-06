@@ -14,6 +14,7 @@ from query_data import get_chain
 from schemas import ChatResponse
 
 from vector_db import get_qdrant_impl, get_qdrant_client
+from config import get_qdrant_config
 from models import Information, MetaInformation
 from ingest import ingest_docs
 from datetime import datetime
@@ -23,6 +24,7 @@ from qdrant_client.http import models as rest
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 vectorstore: Optional[VectorStore] = None
+qdrant_config = get_qdrant_config()
 
 VECTOR_SIZE = 1536
 distance_func = "COSINE"
@@ -36,11 +38,11 @@ async def startup_event():
     qdrant_client = get_qdrant_client()
     try:
         # we check if the collection already exists
-        existing_collection = qdrant_client.get_collection("my_test_documents")
+        existing_collection = qdrant_client.get_collection(qdrant_config["collection"])
     except:
         # if the collection doesn't exist, then we try create it
         qdrant_client.create_collection(
-            collection_name="my_test_documents",
+            collection_name=qdrant_config["collection"],
             vectors_config=rest.VectorParams(
                 size=VECTOR_SIZE,
                 distance=rest.Distance[distance_func],
