@@ -2,7 +2,7 @@
 from langchain.callbacks.base import AsyncCallbackManager
 from langchain.callbacks.tracers import LangChainTracer
 from langchain.chat_models import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain, RetrievalQA
+from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT,
                                                      QA_PROMPT)
 from langchain.chains.llm import LLMChain
@@ -46,10 +46,11 @@ def get_chain(
     )
 
     qa = ConversationalRetrievalChain(
-        retriever=vectorstore.as_retriever(),
+        retriever=vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 1}),
         combine_docs_chain=doc_chain,
         question_generator=question_generator,
         callback_manager=manager,
+        return_source_documents=True
     )
     
     return qa

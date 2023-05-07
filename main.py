@@ -83,15 +83,12 @@ async def websocket_endpoint(websocket: WebSocket):
             start_resp = ChatResponse(sender="bot", message="", type="start")
             await websocket.send_json(start_resp.dict())
 
-            print("now I will find out the answer")
             result = await qa_chain.acall(
                 {"question": question, "chat_history": chat_history}
             )
-            print("here is the answer")
-            print(result)
-            chat_history.append((question, result["answer"]))
 
-            end_resp = ChatResponse(sender="bot", message=result["answer"], type="end")
+            source_answer_message = f" ::::: Source: {result['source_documents'][0].page_content}"
+            end_resp = ChatResponse(sender="bot", message=source_answer_message, type="stream")
             await websocket.send_json(end_resp.dict())
         except WebSocketDisconnect:
             logging.info("websocket disconnect")
